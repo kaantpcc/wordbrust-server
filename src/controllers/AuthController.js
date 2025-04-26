@@ -22,6 +22,17 @@ class AuthController {
       res.status(400).json({ error: error.message }); // HTTP 400 Bad Request
     }
   }
+
+  static async logout(req, res) {
+    try {
+      const userData = req.user;
+      const result = await AuthService.logout(userData);
+      res.status(200).json(result); // HTTP 200 OK
+    } catch (error) {
+      console.error("Error during logout:", error.message);
+      res.status(400).json({ error: error.message }); // HTTP 400 Bad Request
+    }
+  }
 }
 
 module.exports = AuthController;

@@ -91,6 +91,13 @@ class AuthService {
 
     return { token, user: payload };
   }
+
+  static async logout(userData) {
+    console.log(
+      `Logout request for user: ${userData.username} (ID: ${userData.id})`
+    );
+    return { message: "Başarıyla çıkış yaptınız" };
+  }
 }
 
 module.exports = AuthService;
