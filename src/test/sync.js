@@ -1,4 +1,5 @@
 const sequelize = require("../config/database.js");
+const Users = require("../models/Users.js");
 
 async function syncDatabase() {
   try {
@@ -13,5 +14,7 @@ async function syncDatabase() {
     await sequelize.close();
   }
 }
+
+console.log("Syncing database...");
 
 syncDatabase();
