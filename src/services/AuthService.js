@@ -1,5 +1,7 @@
 const Users = require("../models/Users.js");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const { Op } = require("sequelize");
 
 class AuthService {
   static async register(userData) {
@@ -52,6 +54,42 @@ class AuthService {
     console.log("User created succesfully: ", newUser.username);
 
     return newUser;
+  }
+
+  static async login(userData) {
+    const { email_or_username, user_password, remember_me } = userData;
+    if (!email_or_username)
+      throw new Error("Kullanıcı adı veya email adresi boş bırakılamaz");
+    if (!user_password) throw new Error("Şifre boş bırakılamaz");
+
+    const user = await Users.findOne({
+      where: {
+        [Op.or]: [
+          { email_address: email_or_username },
+          { username: email_or_username },
+        ],
+      },
+    });
+
+    if (!user) throw new Error("Kullanıcı bulunamadı");
+
+    const passwordMatch = await bcrypt.compare(
+      user_password,
+      user.user_password
+    );
+    if (!passwordMatch) throw new Error("Geçersiz şifre");
+
+    const payload = {
+      id: user.id,
+      email_address: user.email_address,
+      username: user.username,
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: remember_me ? "7d" : "1h",
+    });
+
+    return { token, user: payload };
   }
 }
 
