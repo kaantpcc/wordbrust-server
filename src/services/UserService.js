@@ -2,14 +2,16 @@ const Users = require("../models/Users");
 
 class UserService {
   static async getProfile(user) {
-    if (!user) throw new Error("Kullanıcı bulunamadı");
+    const userData = await Users.findByPk(user.id);
+
+    if (!userData) throw new Error("Kullanıcı bulunamadı");
 
     return {
-      id: user.id,
-      username: user.username,
-      email_address: user.email_address,
-      user_win_count: user.user_win_count,
-      user_loss_count: user.user_loss_count,
+      id: userData.id,
+      username: userData.username,
+      email: userData.email_address,
+      user_win_count: userData.user_win_count,
+      user_lose_count: userData.user_lose_count,
     };
   }
 }
