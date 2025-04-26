@@ -11,7 +11,7 @@ class UserService {
       username: userData.username,
       email: userData.email_address,
       user_win_count: userData.user_win_count,
-      user_lose_count: userData.user_lose_count,
+      user_loss_count: userData.user_loss_count,
     };
   }
 }
