@@ -1,6 +1,6 @@
 const GameService = require("../services/GameService");
 const BoardCells = require("../models/BoardCells");
-const { io } = require("../index");
+const { getIO } = require("../socket");
 
 class GameController {
   static async findOrCreateGame(req, res) {
@@ -27,6 +27,8 @@ class GameController {
             "bonus_type",
           ],
         });
+
+        const io = getIO();
 
         // Odaya game_found mesajı gönderiyoruz
         io.to(`game_${result.game.id}`).emit("game_found", {
