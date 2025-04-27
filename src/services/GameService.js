@@ -1,12 +1,12 @@
 const Games = require("../models/Games.js");
 
 class GameService {
-  static async findOrCreateGame(playerId, gameMode) {
+  static async findOrCreateGame(playerId, game_mode) {
     const waitingGame = await Games.findOne({
       where: {
         game_status: "waiting",
         player2_id: null,
-        game_mode: gameMode,
+        game_mode: game_mode,
       },
     });
 
@@ -25,7 +25,7 @@ class GameService {
     } else {
       const newGame = await Games.create({
         player1_id: playerId,
-        game_mode: gameMode,
+        game_mode: game_mode,
         game_status: "waiting",
         player1_score: 0,
         player2_score: 0,
