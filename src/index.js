@@ -39,22 +39,22 @@ io.on("connection", (socket) => {
       console.log(`User ${socket.id} joined game room: ${gameId}`);
       socket.join(`game_${gameId}`);
 
-      const board = await BoardCells.findAll({
-        where: { game_id: gameId },
-        attributes: [
-          "row",
-          "col",
-          "letter",
-          "letter_multiplier",
-          "word_multiplier",
-          "mine_type",
-          "bonus_type",
-        ],
-      });
+      // const board = await BoardCells.findAll({
+      //   where: { game_id: gameId },
+      //   attributes: [
+      //     "row",
+      //     "col",
+      //     "letter",
+      //     "letter_multiplier",
+      //     "word_multiplier",
+      //     "mine_type",
+      //     "bonus_type",
+      //   ],
+      // });
 
-      io.to(`game_${gameId}`).emit("board_initialized", board);
+      // io.to(`game_${gameId}`).emit("board_initialized", board);
 
-      console.log(`Board initialized for game ${gameId}`);
+      // console.log(`Board initialized for game ${gameId}`);
     } catch (error) {
       console.log(`Error sending board to room: ${error}`);
     }

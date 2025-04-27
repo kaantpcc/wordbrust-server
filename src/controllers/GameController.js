@@ -1,4 +1,6 @@
 const GameService = require("../services/GameService");
+const BoardCells = require("../models/BoardCells");
+const { io } = require("../index");
 
 class GameController {
   static async findOrCreateGame(req, res) {
@@ -11,17 +13,32 @@ class GameController {
       }
 
       const result = await GameService.findOrCreateGame(playerId, game_mode);
-      res.status(200).json({
-        message: result.message,
-        game: {
-          id: result.game.id,
-          player1_id: result.game.player1_id,
-          player2_id: result.game.player2_id,
-          game_status: result.game.game_status,
-          game_mode: result.game.game_mode,
-          current_turn_player_id: result.game.current_turn_player_id,
-        },
-      });
+      if (result.message === "Oyun bulundu") {
+        // Oyun bulundu ve eşleşme olduysa:
+        const board = await BoardCells.findAll({
+          where: { game_id: result.game.id },
+          attributes: [
+            "row",
+            "col",
+            "letter",
+            "letter_multiplier",
+            "word_multiplier",
+            "mine_type",
+            "bonus_type",
+          ],
+        });
+
+        // Odaya game_found mesajı gönderiyoruz
+        io.to(`game_${result.game.id}`).emit("game_found", {
+          message: "Rakibin geldi, oyun başlıyor!",
+          gameId: result.game.id,
+        });
+
+        // Odaya board_initialized mesajı gönderiyoruz
+        io.to(`game_${result.game.id}`).emit("board_initialized", board);
+      }
+
+      res.status(200).json(result);
     } catch (error) {
       console.error("Error in findOrCreateGame:", error);
       res.status(500).json({ error: "Internal server error" });

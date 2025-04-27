@@ -1,5 +1,6 @@
 const Games = require("../models/Games.js");
 const BoardService = require("./BoardService.js");
+const { Op } = require("sequelize");
 
 class GameService {
   static async findOrCreateGame(playerId, game_mode) {
@@ -8,6 +9,7 @@ class GameService {
         game_status: "waiting",
         player2_id: null,
         game_mode: game_mode,
+        player1_id: { [Op.ne]: playerId },
       },
     });
 
