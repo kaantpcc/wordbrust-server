@@ -1,4 +1,5 @@
 const Games = require("../models/Games.js");
+const BoardService = require("./BoardService.js");
 
 class GameService {
   static async findOrCreateGame(playerId, game_mode) {
@@ -17,6 +18,8 @@ class GameService {
       waitingGame.current_turn_player_id = starter;
       waitingGame.last_move_at = new Date();
       await waitingGame.save();
+
+      await BoardService.initializeBoard(waitingGame.id);
 
       return {
         message: "Oyun bulundu",
