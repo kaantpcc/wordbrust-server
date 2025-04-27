@@ -9,6 +9,8 @@ const authRoutes = require("./routes/AuthRoutes.js");
 const userRoutes = require("./routes/UserRoutes.js");
 const gameRoutes = require("./routes/GameRoutes.js");
 
+const BoardCells = require("./models/BoardCells.js");
+
 const app = express();
 const PORT = process.env.PORT;
 
@@ -33,8 +35,29 @@ io.on("connection", (socket) => {
   console.log(`A user connected: ${socket.id}`);
 
   socket.on("join_game_room", async ({ gameId }) => {
-    console.log(`User ${socket.id} joined game room: ${gameId}`);
-    socket.join(`game_${gameId}`);
+    try {
+      console.log(`User ${socket.id} joined game room: ${gameId}`);
+      socket.join(`game_${gameId}`);
+
+      const board = await BoardCells.findAll({
+        where: { game_id: gameId },
+        attributes: [
+          "row",
+          "col",
+          "letter",
+          "letter_multiplier",
+          "word_multiplier",
+          "mine_type",
+          "bonus_type",
+        ],
+      });
+
+      io.to(`game_${gameId}`).emit("board_initialized", board);
+
+      console.log(`Board initialized for game ${gameId}`);
+    } catch (error) {
+      console.log(`Error sending board to room: ${error}`);
+    }
   });
 
   socket.on("disconnect", () => {
