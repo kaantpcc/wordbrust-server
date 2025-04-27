@@ -4,7 +4,8 @@ const cors = require("cors");
 require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 
 const authRoutes = require("./routes/AuthRoutes.js");
-const userRoutes = require("./routes/UserRoutes.js"); 
+const userRoutes = require("./routes/UserRoutes.js");
+const gameRoutes = require("./routes/GameRoutes.js");
 
 const app = express();
 const PORT = process.env.PORT;
@@ -15,6 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/auth", authRoutes); // authentication routes
 app.use("/api/user", userRoutes); // user routes
+app.use("/api/game", gameRoutes); // game routes
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

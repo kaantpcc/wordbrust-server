@@ -1,5 +1,7 @@
 const sequelize = require("../config/database.js");
 const Users = require("../models/Users.js");
+const Games = require("../models/Games.js");
+const BoardCells = require("../models/BoardCells.js");
 
 async function syncDatabase() {
   try {
