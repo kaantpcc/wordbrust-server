@@ -22,6 +22,7 @@ class GameController {
   static async getActiveGamesByPlayer(req, res) {
     try {
       const playerId = req.user.id;
+      console.log("Player ID:", playerId);
       const activeGames = await GameService.getActiveGamesByPlayer(playerId);
 
       res.status(200).json(activeGames);
