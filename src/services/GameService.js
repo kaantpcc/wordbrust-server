@@ -46,6 +46,47 @@ class GameService {
       };
     }
   }
+
+  static async getActiveGamesByPlayer(playerId) {
+    const activeGames = await Games.findAll({
+      where: {
+        game_status: "active",
+        [Op.or]: [{ player1_id: playerId }, { player2_id: playerId }],
+      },
+      include: [
+        { model: Users, as: "player1", attributes: ["id", "username"] },
+        { model: Users, as: "player2", attributes: ["id", "username"] },
+        { model: Users, as: "current_turn_player", attributes: ["id"] },
+      ],
+      order: [["updatedAt", "DESC"]],
+    });
+
+    return activeGames.map((game) => {
+      const isPlayer1 = game.player1_id === playerId;
+      const yourScore = isPlayer1 ? game.player1_score : game.player2_score;
+      const opponentScore = isPlayer1 ? game.player2_score : game.player1_score;
+      const opponent = isPlayer1
+        ? game.player2?.username || "Rakip bekleniyor"
+        : game.player1?.username || "Rakip bekleniyor";
+
+      const turnInfo =
+        game.current_turn_player_id === playerId
+          ? "Oyun sırası sizde."
+          : "Oyun sırası bekleniyor.";
+
+      const elapsedMinutes = game.last_move_at
+        ? Math.floor((Date.now() - new Date(game.last_move_at)) / 60000)
+        : 0;
+
+      return {
+        gameId: game.id,
+        opponentUsername: opponent,
+        scoreText: `Liste: ${yourScore} - ${opponentScore}`,
+        durationText: `Süre: ${elapsedMinutes} dk.`,
+        turnInfo,
+      };
+    });
+  }
 }
 
 module.exports = GameService;

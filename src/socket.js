@@ -29,27 +29,30 @@ function initSocket(server) {
 
         console.log(`Game ${gameId} current users: ${gameRooms[gameId]}`);
 
-        // Eğer odadaki kullanıcı sayısı 2 olduysa boardu gönder
+        // Database'den board'u çekiyoruz
+        const board = await BoardCells.findAll({
+          where: { game_id: gameId },
+          attributes: [
+            "row",
+            "col",
+            "letter",
+            "letter_multiplier",
+            "word_multiplier",
+            "mine_type",
+            "bonus_type",
+          ],
+        });
+
+        // 🔁 Eğer oyun yeni başlıyorsa iki tarafa da gönder (eşleşme anı)
         if (gameRooms[gameId] === 2) {
-          console.log(`Game ${gameId} is ready! Sending board...`);
-
-          // Database'den boardu çekiyoruz
-          const board = await BoardCells.findAll({
-            where: { game_id: gameId },
-            attributes: [
-              "row",
-              "col",
-              "letter",
-              "letter_multiplier",
-              "word_multiplier",
-              "mine_type",
-              "bonus_type",
-            ],
-          });
-
           io.to(`game_${gameId}`).emit("board_initialized", board);
-
-          console.log(`Board sent for game ${gameId}`);
+          console.log(`Board sent to BOTH for new game: ${gameId}`);
+        } else {
+          // 🔁 Eğer eski oyuna biri geri döndüyse sadece ona gönder
+          socket.emit("board_initialized", board);
+          console.log(
+            `Board sent ONLY to ${socket.id} for existing game: ${gameId}`
+          );
         }
       } catch (error) {
         console.log(`Error joining room: ${error}`);

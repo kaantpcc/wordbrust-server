@@ -13,9 +13,20 @@ class GameController {
       const result = await GameService.findOrCreateGame(playerId, game_mode);
 
       res.status(200).json(result);
-
     } catch (error) {
       console.error("Error in findOrCreateGame:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+
+  static async getActiveGamesByPlayer(req, res) {
+    try {
+      const playerId = req.user.id;
+      const activeGames = await GameService.getActiveGamesByPlayer(playerId);
+
+      res.status(200).json(activeGames);
+    } catch (error) {
+      console.error("Error in getActiveGamesByPlayer:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   }
