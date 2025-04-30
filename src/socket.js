@@ -51,10 +51,15 @@ function initSocket(server) {
 
           console.log(`Board sent for game ${gameId}`);
         }
-
       } catch (error) {
         console.log(`Error joining room: ${error}`);
       }
+    });
+
+    socket.on("leave_game_room", ({ gameId }) => {
+      const roomName = `game_${gameId}`;
+      socket.leave(roomName);
+      console.log(`User ${socket.id} left room: ${roomName}`);
     });
 
     socket.on("disconnect", () => {
