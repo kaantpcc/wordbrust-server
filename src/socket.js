@@ -1,8 +1,9 @@
 const { Server } = require("socket.io");
-const BoardCells = require("./models/BoardCells"); // 🔥 boardu çekebilmek için ekliyoruz
+const BoardCells = require("./models/BoardCells");
+const Games = require("./models/Games"); // 🧠 oyun eşleşmesini kontrol etmek için
 
 let io;
-const gameRooms = {}; // 🔥 Oda takibi için { gameId: userCount }
+const gameRooms = {}; // Oda socket kullanıcı sayısı takibi
 
 function initSocket(server) {
   io = new Server(server, {
@@ -13,11 +14,11 @@ function initSocket(server) {
   });
 
   io.on("connection", (socket) => {
-    console.log(`A user connected: ${socket.id}`);
+    console.log(`🟢 Kullanıcı bağlandı: ${socket.id}`);
 
     socket.on("join_game_room", async ({ gameId }) => {
       try {
-        console.log(`User ${socket.id} joining game room: ${gameId}`);
+        console.log(`➡️ ${socket.id} game_${gameId} odasına katılıyor...`);
         socket.join(`game_${gameId}`);
 
         // Oda kullanıcı sayısını güncelle
@@ -27,9 +28,16 @@ function initSocket(server) {
           gameRooms[gameId]++;
         }
 
-        console.log(`Game ${gameId} current users: ${gameRooms[gameId]}`);
+        console.log(`📊 game_${gameId} oda kişi sayısı: ${gameRooms[gameId]}`);
 
-        // Database'den board'u çekiyoruz
+        // DB'den oyun bilgisini al (eşleşme kontrolü)
+        const game = await Games.findByPk(gameId);
+        if (!game || !game.player1_id || !game.player2_id) {
+          console.log(`⚠️ Oyun henüz eşleşmedi. Board gönderilmeyecek.`);
+          return;
+        }
+
+        // Board verisini çek
         const board = await BoardCells.findAll({
           where: { game_id: gameId },
           attributes: [
@@ -43,30 +51,37 @@ function initSocket(server) {
           ],
         });
 
-        // 🔁 Eğer oyun yeni başlıyorsa iki tarafa da gönder (eşleşme anı)
+        // 👇 Her iki oyuncu da bağlıysa (eşleşme anı)
         if (gameRooms[gameId] === 2) {
           io.to(`game_${gameId}`).emit("board_initialized", board);
-          console.log(`Board sent to BOTH for new game: ${gameId}`);
+          console.log(`📦 Board gönderildi (HERKESE) game_${gameId}`);
         } else {
-          // 🔁 Eğer eski oyuna biri geri döndüyse sadece ona gönder
+          // 👇 Oyuna geri dönen kullanıcıya sadece kendisine gönder
           socket.emit("board_initialized", board);
-          console.log(
-            `Board sent ONLY to ${socket.id} for existing game: ${gameId}`
-          );
+          console.log(`📦 Board gönderildi (SADECE) ${socket.id}`);
         }
       } catch (error) {
-        console.log(`Error joining room: ${error}`);
+        console.log(`❌ Odaya katılırken hata: ${error}`);
       }
     });
 
     socket.on("leave_game_room", ({ gameId }) => {
       const roomName = `game_${gameId}`;
       socket.leave(roomName);
-      console.log(`User ${socket.id} left room: ${roomName}`);
+      console.log(`🚪 Kullanıcı ayrıldı: ${socket.id} → ${roomName}`);
+
+      if (gameRooms[gameId]) {
+        gameRooms[gameId]--;
+
+        if (gameRooms[gameId] <= 0) {
+          delete gameRooms[gameId];
+        }
+      }
     });
 
     socket.on("disconnect", () => {
-      console.log(`User disconnected: ${socket.id}`);
+      console.log(`🔴 Kullanıcı bağlantısı kesildi: ${socket.id}`);
+      // Kullanıcının hangi odalardan ayrıldığını bilmiyoruz ama gameRooms sayacını sıfırlamak isterseniz mapping tutmanız gerekir
     });
   });
 
