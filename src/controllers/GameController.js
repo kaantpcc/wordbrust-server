@@ -2,6 +2,7 @@ const GameService = require("../services/GameService");
 const LetterService = require("../services/LetterService");
 const PlayerLetters = require("../models/PlayerLetters.js");
 const LettersPool = require("../models/LettersPool.js");
+const LETTER_DEFINITIONS = require("../config/letterDefinitions.js");
 
 class GameController {
   static async findOrCreateGame(req, res) {
@@ -19,29 +20,39 @@ class GameController {
       const player1Id = game.player1_id;
       const player2Id = game.player2_id;
 
-      // Daha önce harf atanmış mı kontrol et
+      // Bu oyuncunun daha önce harf alıp almadığını kontrol et
       const existingLetters = await PlayerLetters.findAll({
         where: { game_id: game.id, player_id: playerId },
         attributes: ["letter"],
       });
 
       let playerLetters = [];
-      let totalRemaining = await LettersPool.sum("remaining_count", {
+      let totalRemaining = 0;
+
+      if (existingLetters.length === 0) {
+        // Bu oyuncuya harf verilmeli
+        await LetterService.giveInitialLettersToPlayer(game.id, playerId);
+      }
+
+      // 🔥 Her iki oyuncu da harf aldıktan sonra kalan harfleri hesapla
+      const totalLettersGiven = await PlayerLetters.count({
         where: { game_id: game.id },
       });
 
-      if (existingLetters.length === 0) {
-        // Harf yoksa ver
-        const resultLetters = await LetterService.giveInitialLettersToPlayer(
-          game.id,
-          playerId
-        );
-        playerLetters = resultLetters.letters;
-        totalRemaining = resultLetters.totalRemaining;
-      } else {
-        // Varsa var olanları kullan
-        playerLetters = existingLetters.map((l) => ({ letter: l.letter }));
-      }
+      const letterCountInDefinitions = LETTER_DEFINITIONS.reduce(
+        (sum, item) => sum + item.count,
+        0
+      );
+
+      totalRemaining = letterCountInDefinitions - totalLettersGiven;
+
+      // 🎯 Bu oyuncunun harflerini yeniden çekiyoruz (verdiğimiz veya önceki harfler olabilir)
+      const playerLetterRows = await PlayerLetters.findAll({
+        where: { game_id: game.id, player_id: playerId },
+        attributes: ["letter"],
+      });
+
+      playerLetters = playerLetterRows.map((l) => ({ letter: l.letter }));
 
       res.status(200).json({
         ...result,
