@@ -34,17 +34,10 @@ class GameController {
         await LetterService.giveInitialLettersToPlayer(game.id, playerId);
       }
 
-      // 🔥 Her iki oyuncu da harf aldıktan sonra kalan harfleri hesapla
-      const totalLettersGiven = await PlayerLetters.count({
-        where: { game_id: game.id },
-      });
-
-      const letterCountInDefinitions = LETTER_DEFINITIONS.reduce(
-        (sum, item) => sum + item.count,
-        0
-      );
-
-      totalRemaining = letterCountInDefinitions - totalLettersGiven;
+      totalRemaining =
+        (await LettersPool.sum("remaining_count", {
+          where: { game_id: game.id },
+        })) || 0;
 
       // 🎯 Bu oyuncunun harflerini yeniden çekiyoruz (verdiğimiz veya önceki harfler olabilir)
       const playerLetterRows = await PlayerLetters.findAll({
