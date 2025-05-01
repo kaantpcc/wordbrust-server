@@ -29,6 +29,11 @@ BoardCells.init(
       type: DataTypes.STRING(1),
       allowNull: true,
     },
+    used_as_letter:{
+      // for joker letters
+      type: DataTypes.STRING(2),
+      allowNull: true,
+    },
     letter_multiplier: {
       // letter multiplier 1-3
       type: DataTypes.INTEGER,

@@ -1,4 +1,20 @@
 const BoardCells = require("../models/BoardCells.js");
+const LettersPool = require("../models/LettersPool.js");
+const LETTER_DEFINITIONS = require("../config/letterDefinitions.js");
+
+const initializeLettersPool = async (gameId) => {
+  const lettersPool = LETTER_DEFINITIONS.map((letter) => {
+    return {
+      game_id: gameId,
+      letter: letter.letter,
+      remaining_count: letter.count,
+      letter_score: letter.score,
+    };
+  });
+
+  await LettersPool.bulkCreate(lettersPool);
+  console.log("Letters pool initialized successfully.");
+};
 
 class BoardService {
   static async initializeBoard(gameId) {
@@ -138,6 +154,8 @@ class BoardService {
     }
 
     await BoardCells.bulkCreate(boardCells);
+    
+    await initializeLettersPool(gameId);
 
     console.log("Board initialized successfully.");
   }
