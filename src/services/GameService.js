@@ -22,7 +22,12 @@ class GameService {
       waitingGame.last_move_at = new Date();
       await waitingGame.save();
 
-      await BoardService.initializeBoard(waitingGame.id);
+      const existingCells = await BoardCells.findOne({
+        where: { game_id: waitingGame.id },
+      });
+      if (!existingCells) {
+        await BoardService.initializeBoard(waitingGame.id);
+      }
 
       return {
         message: "Oyun bulundu",
@@ -40,6 +45,8 @@ class GameService {
         current_turn_player_id: null,
         last_move_at: null,
       });
+
+      await BoardService.initializeBoard(newGame.id);
 
       return {
         message: "Yeni oyun oluşturuldu",
