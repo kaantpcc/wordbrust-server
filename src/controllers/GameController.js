@@ -1,4 +1,5 @@
 const GameService = require("../services/GameService");
+const LetterService = require("../services/LetterService");
 
 class GameController {
   static async findOrCreateGame(req, res) {
@@ -11,6 +12,13 @@ class GameController {
       }
 
       const result = await GameService.findOrCreateGame(playerId, game_mode);
+
+      if (result.game && result.game.game_status === "active") {
+        await LetterService.giveInitialLettersToPlayer(
+          result.game.id,
+          playerId
+        );
+      }
 
       res.status(200).json(result);
     } catch (error) {
