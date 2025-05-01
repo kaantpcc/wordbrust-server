@@ -1,6 +1,7 @@
 const Games = require("../models/Games.js");
 const BoardService = require("./BoardService.js");
 const Users = require("../models/Users.js");
+const BoardCells = require("../models/BoardCells.js");
 const { Op } = require("sequelize");
 
 class GameService {
