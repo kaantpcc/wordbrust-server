@@ -1,5 +1,6 @@
 const GameService = require("../services/GameService");
 const LetterService = require("../services/LetterService");
+const PlayerLetters = require("../models/PlayerLetters.js");
 
 class GameController {
   static async findOrCreateGame(req, res) {
