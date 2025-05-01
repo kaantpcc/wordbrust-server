@@ -2,6 +2,8 @@ const { Server } = require("socket.io");
 const BoardCells = require("./models/BoardCells");
 const Games = require("./models/Games");
 const LettersPool = require("./models/LettersPool"); // ⬅️ Havuzdan harf sayısını okumak için
+const PlayerLetters = require("./models/PlayerLetters");
+const LetterService = require("./services/LetterService"); // ⬅️ Harfleri vermek için
 
 let io;
 const gameRooms = {};
@@ -17,7 +19,7 @@ function initSocket(server) {
   io.on("connection", (socket) => {
     console.log(`🟢 Kullanıcı bağlandı: ${socket.id}`);
 
-    socket.on("join_game_room", async ({ gameId }) => {
+    socket.on("join_game_room", async ({ gameId, playerId }) => {
       try {
         console.log(`➡️ ${socket.id} game_${gameId} odasına katılıyor...`);
         socket.join(`game_${gameId}`);
@@ -38,13 +40,12 @@ function initSocket(server) {
           return;
         }
 
-        // 🎯 Kalan harf sayısını al
+        // 🎯 Kalan harf sayısını al ve gönder
         const totalRemaining =
           (await LettersPool.sum("remaining_count", {
             where: { game_id: gameId },
           })) || 0;
 
-        // 👇 Her iki oyuncuya gönder
         io.to(`game_${gameId}`).emit("remaining_letters_updated", {
           totalRemaining,
         });
@@ -70,6 +71,34 @@ function initSocket(server) {
         } else {
           socket.emit("board_initialized", board);
           console.log(`📦 Board gönderildi (SADECE) ${socket.id}`);
+        }
+
+        // 🎯 İlk harfleri yalnızca ilk kez ver
+        const giveInitialLettersIfNeeded = async (playerId, socketId) => {
+          const existingLetters = await PlayerLetters.findAll({
+            where: { game_id: gameId, player_id: playerId },
+            attributes: ["letter"],
+          });
+
+          if (existingLetters.length === 0) {
+            const { letters } = await LetterService.giveInitialLettersToPlayer(
+              gameId,
+              playerId
+            );
+            io.to(socketId).emit("initial_letters", { playerId, letters });
+            console.log(`🆕 Harfler verildi → ${playerId}`);
+          } else {
+            const letters = existingLetters.map((l) => ({ letter: l.letter }));
+            io.to(socketId).emit("initial_letters", { playerId, letters });
+            console.log(`🔁 Zaten harf almıştı → ${playerId}`);
+          }
+        };
+
+        // Harfleri gönder (oyuncular belli)
+        if (playerId === game.player1_id) {
+          await giveInitialLettersIfNeeded(game.player1_id, socket.id);
+        } else if (playerId === game.player2_id) {
+          await giveInitialLettersIfNeeded(game.player2_id, socket.id);
         }
       } catch (error) {
         console.log(`❌ Odaya katılırken hata: ${error}`);
