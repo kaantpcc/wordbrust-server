@@ -3,7 +3,36 @@ const PlayerLetters = require("../models/PlayerLetters");
 const { Op } = require("sequelize");
 
 class LetterService {
-  static async giveInitialLettersToPlayer(gameId, playerId, count = 7) {
+  static async selectRandomLettersFromPool(pool, count) {
+    const letterBag = [];
+
+    for (const item of pool) {
+      for (let i = 0; i < item.remaining_count; i++) {
+        letterBag.push({ letter: item.letter });
+      }
+    }
+
+    if (letterBag.length < count) {
+      throw new Error("Yeterli harf yok.");
+    }
+
+    const selectedLetters = [];
+    for (let i = 0; i < count; i++) {
+      const randIndex = Math.floor(Math.random() * letterBag.length);
+      const chosenLetter = letterBag[randIndex];
+      selectedLetters.push(chosenLetter);
+      letterBag.splice(randIndex, 1);
+    }
+
+    return selectedLetters;
+  }
+
+  static async giveInitialLettersToBothPlayers(
+    gameId,
+    player1Id,
+    player2Id,
+    count = 7
+  ) {
     const pool = await LettersPool.findAll({
       where: {
         game_id: gameId,
@@ -17,41 +46,36 @@ class LetterService {
       throw new Error("Harf havuzu boş.");
     }
 
-    const letterBag = [];
-    for (const item of pool) {
-      for (let i = 0; i < item.remaining_count; i++) {
-        letterBag.push({ letter: item.letter });
-      }
-    }
-
-    if (letterBag.length < count) {
-      throw new Error("Yeterli harf yok.");
-    }
-
-    // 7 rastgele harf
-    const selectedLetters = [];
-    for (let i = 0; i < count; i++) {
-      const randIndex = Math.floor(Math.random() * letterBag.length);
-      const chosenLetter = letterBag[randIndex];
-      selectedLetters.push(chosenLetter);
-      letterBag.splice(randIndex, 1);
-    }
-
-    //kullanıcı harfleri
-    await PlayerLetters.bulkCreate(
-      selectedLetters.map((l) => ({
-        game_id: gameId,
-        player_id: playerId,
-        letter: l.letter,
-        is_frozen: false,
-      }))
+    const lettersForPlayer1 = await this.selectRandomLettersFromPool(
+      pool,
+      count
+    );
+    const lettersForPlayer2 = await this.selectRandomLettersFromPool(
+      pool,
+      count
     );
 
-    // havuzdan düşür
+    // Havuzdan sadece burada düşür
     const usageMap = {};
-    for (const { letter } of selectedLetters) {
+
+    [...lettersForPlayer1, ...lettersForPlayer2].forEach(({ letter }) => {
       usageMap[letter] = (usageMap[letter] || 0) + 1;
-    }
+    });
+
+    await PlayerLetters.bulkCreate([
+      ...lettersForPlayer1.map((l) => ({
+        game_id: gameId,
+        player_id: player1Id,
+        letter: l.letter,
+        is_frozen: false,
+      })),
+      ...lettersForPlayer2.map((l) => ({
+        game_id: gameId,
+        player_id: player2Id,
+        letter: l.letter,
+        is_frozen: false,
+      })),
+    ]);
 
     await Promise.all(
       Object.entries(usageMap).map(([letter, amount]) =>
@@ -67,9 +91,10 @@ class LetterService {
     });
 
     return {
-      letters: selectedLetters,
+      player1Letters: lettersForPlayer1,
+      player2Letters: lettersForPlayer2,
       totalRemaining: remaining || 0,
-    }; // [{ letter: "A" }, ...]
+    };
   }
 }
 
