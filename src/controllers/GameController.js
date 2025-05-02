@@ -15,11 +15,9 @@ class GameController {
       const result = await GameService.findOrCreateGame(playerId, game_mode);
       const game = result.game;
 
-    
       // ❌ totalRemaining kaldırıldı çünkü artık socket ile gönderiliyor
       res.status(200).json({
         ...result,
-        playerLetters,
       });
     } catch (error) {
       console.error("Error in findOrCreateGame:", error);
