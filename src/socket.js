@@ -4,6 +4,7 @@ const Games = require("./models/Games");
 const LettersPool = require("./models/LettersPool"); // ⬅️ Havuzdan harf sayısını okumak için
 const PlayerLetters = require("./models/PlayerLetters");
 const LetterService = require("./services/LetterService"); // ⬅️ Harfleri vermek için
+const Users = require("./models/Users"); // ⬅️ Kullanıcı bilgilerini almak için
 
 let io;
 const gameRooms = {};
@@ -38,6 +39,28 @@ function initSocket(server) {
           console.log(`⚠️ Oyun henüz eşleşmedi.`);
           return;
         }
+
+        const player1 = await Users.findByPk(game.player1_id, {
+          attributes: ["id", "username"],
+        });
+        const player2 = await Users.findByPk(game.player2_id, {
+          attributes: ["id", "username"],
+        });
+
+        io.to(`game_${gameId}`).emit("players_info", {
+          players: [
+            {
+              id: player1.id,
+              username: player1.username,
+              score: game.player1_score,
+            },
+            {
+              id: player2.id,
+              username: player2.username,
+              score: game.player2_score,
+            },
+          ],
+        });
 
         // 1. Kalan harf sayısını gönder
         const totalRemaining =
