@@ -127,13 +127,9 @@ function initSocket(server) {
     });
 
     socket.on("leave_game_room", ({ gameId }) => {
+      const roomName = `game_${gameId}`;
       socket.leave(roomName);
-      if (gameRooms[gameId]) {
-        gameRooms[gameId].delete(socket.id); // ➊
-        if (gameRooms[gameId].size === 0) {
-          delete gameRooms[gameId];
-        }
-      }
+      console.log(`🚪 ${socket.id} left ${roomName}`);
     });
 
     socket.on("disconnect", () => {
