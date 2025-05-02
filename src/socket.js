@@ -25,10 +25,12 @@ function initSocket(server) {
         socket.join(`game_${gameId}`);
 
         if (!gameRooms[gameId]) {
-          gameRooms[gameId] = new Set();
+          gameRooms[gameId] = {
+            sockets: new Map(),
+          };
         }
 
-        gameRooms[gameId].add(socket.id);
+        gameRooms[gameId].sockets.set(playerId, socket.id);
         console.log(
           `📊 game_${gameId} oda kişi sayısı: ${gameRooms[gameId].size}`
         );
@@ -66,7 +68,7 @@ function initSocket(server) {
           ],
         });
 
-        for (const socketId of gameRooms[gameId]) {
+        for (const [_, socketId] of gameRooms[gameId].sockets.entries()) {
           io.to(socketId).emit("board_initialized", board);
           console.log(`📦 Board gönderildi → ${socketId}`);
         }
@@ -92,12 +94,7 @@ function initSocket(server) {
           }
         };
 
-        // Harfleri gönder (oyuncular belli)
-        if (playerId === game.player1_id) {
-          await giveInitialLettersIfNeeded(game.player1_id, socket.id);
-        } else if (playerId === game.player2_id) {
-          await giveInitialLettersIfNeeded(game.player2_id, socket.id);
-        }
+        await giveInitialLettersIfNeeded(playerId, socket.id);
       } catch (error) {
         console.log(`❌ Odaya katılırken hata: ${error}`);
       }
