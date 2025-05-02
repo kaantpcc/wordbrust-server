@@ -1,6 +1,7 @@
 const LettersPool = require("../models/LettersPool");
 const PlayerLetters = require("../models/PlayerLetters");
 const { Op } = require("sequelize");
+const { getIO } = require("../socket"); // ← socket.js yoluna göre gerekirse düzelt
 
 class LetterService {
   static async giveInitialLettersToPlayer(gameId, playerId, count = 7) {
@@ -28,7 +29,7 @@ class LetterService {
       throw new Error("Yeterli harf yok.");
     }
 
-    // 7 rastgele harf
+    // 🎯 7 rastgele harf seç
     const selectedLetters = [];
     for (let i = 0; i < count; i++) {
       const randIndex = Math.floor(Math.random() * letterBag.length);
@@ -37,7 +38,7 @@ class LetterService {
       letterBag.splice(randIndex, 1);
     }
 
-    //kullanıcı harfleri
+    // 📝 Kullanıcının harflerini kaydet
     await PlayerLetters.bulkCreate(
       selectedLetters.map((l) => ({
         game_id: gameId,
@@ -47,7 +48,7 @@ class LetterService {
       }))
     );
 
-    // havuzdan düşür
+    // 📉 Havuzdan düşür
     const usageMap = {};
     for (const { letter } of selectedLetters) {
       usageMap[letter] = (usageMap[letter] || 0) + 1;
@@ -62,10 +63,18 @@ class LetterService {
       )
     );
 
-  
+    // 🔁 Güncel kalan harf sayısını yay
+    const updatedRemaining = await LettersPool.sum("remaining_count", {
+      where: { game_id: gameId },
+    });
+
+    getIO().to(`game_${gameId}`).emit("remaining_letters_updated", {
+      totalRemaining: updatedRemaining,
+    });
+
     return {
       letters: selectedLetters,
-    } // [{ letter: "A" }, ...]
+    };
   }
 }
 
