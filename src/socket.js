@@ -101,6 +101,18 @@ function initSocket(server) {
             });
             console.log(`🔁 Zaten harf almıştı → ${player.id}`);
           }
+
+          const updatedRemaining =
+            (await LettersPool.sum("remaining_count", {
+              where: { game_id: gameId },
+            })) || 0;
+
+          io.to(`game_${gameId}`).emit("remaining_letters_updated", {
+            totalRemaining: updatedRemaining,
+          });
+          console.log(
+            `🔄 Güncel kalan harf sayısı gönderildi: ${updatedRemaining}`
+          );
         }
       } catch (error) {
         console.log(`❌ Odaya katılırken hata: ${error}`);
