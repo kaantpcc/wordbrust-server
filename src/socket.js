@@ -34,6 +34,16 @@ function initSocket(server) {
           `📊 game_${gameId} oda kişi sayısı: ${gameRooms[gameId].size}`
         );
 
+        if (gameRooms[gameId].size < 2) {
+          console.log(`⏳ Diğer oyuncu bekleniyor...`);
+          return;
+        }
+
+        // ✅ Tam bu noktada both_players_ready emit et
+        io.to(`game_${gameId}`).emit("both_players_ready", {
+          message: "Her iki oyuncu odaya katıldı.",
+        });
+
         const game = await Games.findByPk(gameId);
         if (!game || !game.player1_id || !game.player2_id) {
           console.log(`⚠️ Oyun henüz eşleşmedi.`);
