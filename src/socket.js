@@ -25,25 +25,21 @@ function initSocket(server) {
         socket.join(`game_${gameId}`);
 
         if (!gameRooms[gameId]) {
-          gameRooms[gameId] = {
-            sockets: new Map(),
-          };
+          gameRooms[gameId] = new Set();
         }
 
-        gameRooms[gameId].sockets.set(playerId, socket.id);
+        gameRooms[gameId].add(socket.id);
         console.log(
           `📊 game_${gameId} oda kişi sayısı: ${gameRooms[gameId].size}`
         );
 
         const game = await Games.findByPk(gameId);
         if (!game || !game.player1_id || !game.player2_id) {
-          console.log(
-            `⚠️ Oyun henüz eşleşmedi. Board ve harf sayısı gönderilmeyecek.`
-          );
+          console.log(`⚠️ Oyun henüz eşleşmedi.`);
           return;
         }
 
-        // 🎯 Kalan harf sayısını al ve gönder
+        // 1. Kalan harf sayısını gönder
         const totalRemaining =
           (await LettersPool.sum("remaining_count", {
             where: { game_id: gameId },
@@ -52,9 +48,8 @@ function initSocket(server) {
         io.to(`game_${gameId}`).emit("remaining_letters_updated", {
           totalRemaining,
         });
-        console.log(`🔤 Kalan harf sayısı gönderildi: ${totalRemaining}`);
 
-        // 📦 Board'u gönder
+        // 2. Board'u gönder
         const board = await BoardCells.findAll({
           where: { game_id: gameId },
           attributes: [
@@ -68,33 +63,45 @@ function initSocket(server) {
           ],
         });
 
-        for (const [_, socketId] of gameRooms[gameId].sockets.entries()) {
+        // ✅ Her kullanıcıya board gönder
+        for (const socketId of gameRooms[gameId]) {
           io.to(socketId).emit("board_initialized", board);
           console.log(`📦 Board gönderildi → ${socketId}`);
         }
 
-        // 🎯 İlk harfleri yalnızca ilk kez ver
-        const giveInitialLettersIfNeeded = async (playerId, socketId) => {
+        // 3. Her oyuncuya özel harf gönder
+        const sockets = Array.from(gameRooms[gameId]);
+
+        const players = [
+          { id: game.player1_id, socketId: sockets[0] },
+          { id: game.player2_id, socketId: sockets[1] },
+        ];
+
+        for (const player of players) {
           const existingLetters = await PlayerLetters.findAll({
-            where: { game_id: gameId, player_id: playerId },
+            where: { game_id: gameId, player_id: player.id },
             attributes: ["letter"],
           });
 
           if (existingLetters.length === 0) {
             const { letters } = await LetterService.giveInitialLettersToPlayer(
               gameId,
-              playerId
+              player.id
             );
-            io.to(socketId).emit("initial_letters", { playerId, letters });
-            console.log(`🆕 Harfler verildi → ${playerId}`);
+            io.to(player.socketId).emit("initial_letters", {
+              playerId: player.id,
+              letters,
+            });
+            console.log(`🆕 Harfler verildi → ${player.id}`);
           } else {
             const letters = existingLetters.map((l) => ({ letter: l.letter }));
-            io.to(socketId).emit("initial_letters", { playerId, letters });
-            console.log(`🔁 Zaten harf almıştı → ${playerId}`);
+            io.to(player.socketId).emit("initial_letters", {
+              playerId: player.id,
+              letters,
+            });
+            console.log(`🔁 Zaten harf almıştı → ${player.id}`);
           }
-        };
-
-        await giveInitialLettersIfNeeded(playerId, socket.id);
+        }
       } catch (error) {
         console.log(`❌ Odaya katılırken hata: ${error}`);
       }
