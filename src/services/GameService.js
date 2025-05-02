@@ -96,6 +96,22 @@ class GameService {
       };
     });
   }
+
+  static async getGameById(gameId) {
+    const game = await Games.findByPk(gameId, {
+      include: [
+        { model: Users, as: "player1", attributes: ["id", "username"] },
+        { model: Users, as: "player2", attributes: ["id", "username"] },
+        { model: Users, as: "current_turn_player", attributes: ["id"] },
+      ],
+    });
+
+    if (!game) {
+      throw new Error("Oyun bulunamadı");
+    }
+
+    return game;
+  }
 }
 
 module.exports = GameService;

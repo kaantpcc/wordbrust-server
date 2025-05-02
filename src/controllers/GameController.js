@@ -37,6 +37,16 @@ class GameController {
       res.status(500).json({ error: "Internal server error" });
     }
   }
+
+  static async getGameById(req, res, next) {
+    try {
+      const { gameId } = req.params;
+      const game = await GameService.getGameById(gameId);
+      return res.json({ success: true, game });
+    } catch (err) {
+      return next(err);
+    }
+  }
 }
 
 module.exports = GameController;
