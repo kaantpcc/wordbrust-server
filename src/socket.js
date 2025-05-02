@@ -25,12 +25,13 @@ function initSocket(server) {
         socket.join(`game_${gameId}`);
 
         if (!gameRooms[gameId]) {
-          gameRooms[gameId] = 1;
-        } else {
-          gameRooms[gameId]++;
+          gameRooms[gameId] = new Set();
         }
 
-        console.log(`📊 game_${gameId} oda kişi sayısı: ${gameRooms[gameId]}`);
+        gameRooms[gameId].add(socket.id);
+        console.log(
+          `📊 game_${gameId} oda kişi sayısı: ${gameRooms[gameId].size}`
+        );
 
         const game = await Games.findByPk(gameId);
         if (!game || !game.player1_id || !game.player2_id) {
@@ -65,12 +66,9 @@ function initSocket(server) {
           ],
         });
 
-        if (gameRooms[gameId] === 2) {
-          io.to(`game_${gameId}`).emit("board_initialized", board);
-          console.log(`📦 Board gönderildi (HERKESE) game_${gameId}`);
-        } else {
-          socket.emit("board_initialized", board);
-          console.log(`📦 Board gönderildi (SADECE) ${socket.id}`);
+        for (const socketId of gameRooms[gameId]) {
+          io.to(socketId).emit("board_initialized", board);
+          console.log(`📦 Board gönderildi → ${socketId}`);
         }
 
         // 🎯 İlk harfleri yalnızca ilk kez ver
