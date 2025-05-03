@@ -79,7 +79,7 @@ class GameService {
       raw: true,
     });
 
-    const playerLetters = await PlayerLetters.findAll({
+    let playerLetters = await PlayerLetters.findAll({
       where: { game_id: gameId, player_id: playerId },
       attributes: ["letter"],
       raw: true,
