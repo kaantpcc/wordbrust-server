@@ -53,7 +53,6 @@ function calculateWordScore(wordCells, usedLetterMap) {
       ? usedLetterMap.get(`${cell.row}-${cell.col}`)
       : cell.letter;
     const basePoint = LETTER_POINTS[letter.toUpperCase()] || 0;
-
     let letterScore = basePoint;
     if (isNew) {
       letterScore *= cell.letter_multiplier || 1;
@@ -62,6 +61,31 @@ function calculateWordScore(wordCells, usedLetterMap) {
     total += letterScore;
   }
   return total * wordMultiplier;
+}
+
+function hasGapBetweenLetters(usedLetters, boardMap, direction) {
+  const positions = usedLetters.map((l) =>
+    direction === "horizontal" ? l.col : l.row
+  );
+  const fixed =
+    direction === "horizontal" ? usedLetters[0].row : usedLetters[0].col;
+  const min = Math.min(...positions);
+  const max = Math.max(...positions);
+
+  for (let i = min; i <= max; i++) {
+    const key = direction === "horizontal" ? `${fixed}-${i}` : `${i}-${fixed}`;
+    if (
+      !boardMap.has(key) &&
+      !usedLetters.some(
+        (l) =>
+          (direction === "horizontal" ? l.col : l.row) === i &&
+          (direction === "horizontal" ? l.row : l.col) === fixed
+      )
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 class MoveService {
@@ -92,25 +116,32 @@ class MoveService {
       game.winner_id = winnerId;
       game.winner_score = winnerScore;
       await game.save();
-      throw new Error("timeout_game_over");
+      const err = new Error("Süre doldu. Oyun sona erdi.");
+      err.code = "timeout_game_over";
+      throw err;
     }
 
     if (game.current_turn_player_id !== playerId)
-      throw new Error("Not your turn");
+      throw new Error("Sıra sizde değil.");
 
     const allSameRow = usedLetters.every((l) => l.row === startRow);
     const allSameCol = usedLetters.every((l) => l.col === startCol);
     if (direction === "horizontal" && !allSameRow)
-      throw new Error("Yatay kelimede tüm harfler aynı satırda olmalı");
+      throw new Error(
+        "Yatay yerleştirme hatalı: Tüm harfler aynı satırda olmalı."
+      );
     if (direction === "vertical" && !allSameCol)
-      throw new Error("Dikey kelimede tüm harfler aynı sütunda olmalı");
+      throw new Error(
+        "Dikey yerleştirme hatalı: Tüm harfler aynı sütunda olmalı."
+      );
 
     const totalMoves = await Moves.count({ where: { game_id: gameId } });
     if (
       totalMoves === 0 &&
       !usedLetters.some((l) => l.row === 7 && l.col === 7)
-    )
-      throw new Error("İlk hamlede kelime tahtanın ortasından geçmeli (7,7)");
+    ) {
+      throw new Error("İlk hamlede kelime tahtanın ortasından (7,7) geçmeli.");
+    }
 
     const boardCells = await BoardCells.findAll({ where: { game_id: gameId } });
     const boardMap = new Map();
@@ -118,6 +149,12 @@ class MoveService {
     for (const cell of boardCells) {
       if (cell.letter) boardMap.set(`${cell.row}-${cell.col}`, cell.letter);
       cellMap.set(`${cell.row}-${cell.col}`, cell);
+    }
+
+    if (hasGapBetweenLetters(usedLetters, boardMap, direction)) {
+      throw new Error(
+        "Yeni harfler arasında boşluk bırakılamaz. Tüm harfler bitişik olmalı."
+      );
     }
 
     const isTouching =
@@ -140,8 +177,10 @@ class MoveService {
 
     const wordsToCheck = new Set();
     const wordsToScore = [];
+    const debugWordList = []; // 👈 debug için tüm oluşan kelimeleri burada tutacağız
+
     for (const { row, col } of usedLetters) {
-      // Horizontal
+      // Ana yön - Horizontal
       let sc = col;
       while (
         sc > 0 &&
@@ -162,9 +201,10 @@ class MoveService {
           .join("");
         wordsToCheck.add(hWord.toLowerCase());
         wordsToScore.push(hCells);
+        debugWordList.push(hWord.toLowerCase());
       }
 
-      // Vertical
+      // Dikey yön - Vertical
       let sr = row;
       while (
         sr > 0 &&
@@ -185,12 +225,21 @@ class MoveService {
           .join("");
         wordsToCheck.add(vWord.toLowerCase());
         wordsToScore.push(vCells);
+        debugWordList.push(vWord.toLowerCase());
       }
     }
 
+    // 📋 Tüm kelimeleri yazdır
+    console.log("✅ Oluşan tüm kelimeler:", debugWordList);
+
     for (const w of wordsToCheck) {
       const valid = await Words.findOne({ where: { word: w } });
-      if (!valid) throw new Error(`Geçersiz kelime: ${w}`);
+      if (!valid) {
+        const error = new Error(`Geçersiz kelime: ${w}`);
+        error.invalidWord = w;
+        error.code = "invalid_word";
+        throw error;
+      }
     }
 
     const totalScore = wordsToScore.reduce(
