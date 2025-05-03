@@ -145,12 +145,12 @@ class GameService {
         : game.player1?.username || "Rakip bekleniyor";
 
       const turnInfo =
-        game.current_turn_player_id === playerId
+        game.current_turn_player_id && game.current_turn_player_id === playerId
           ? "Oyun sırası sizde."
           : "Oyun sırası bekleniyor.";
 
       const elapsedMinutes = game.last_move_at
-        ? Math.floor((Date.now() - new Date(game.last_move_at)) / 60000)
+        ? Math.floor((new Date() - new Date(game.last_move_at)) / 60000)
         : 0;
 
       return {
