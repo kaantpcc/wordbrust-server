@@ -15,6 +15,10 @@ class MoveService {
     direction,
     usedLetters,
   }) {
+
+    console.log("Used letters:", usedLetters);
+    console.log("Word:", word);
+
     const game = await Games.findByPk(gameId);
     if (!game) throw new Error("Game not found");
 
