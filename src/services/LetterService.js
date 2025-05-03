@@ -130,6 +130,31 @@ class LetterService {
     });
     return total || 0;
   }
+
+  static async removeUsedLetters(gameId, playerId, usedLetters) {
+    const usageMap = {};
+
+    for (const { letter } of usedLetters) {
+      usageMap[letter] = (usageMap[letter] || 0) + 1;
+    }
+
+    for (const [letter, amount] of Object.entries(usageMap)) {
+      for (let i = 0; i < amount; i++) {
+        const entry = await PlayerLetters.findOne({
+          where: {
+            game_id: gameId,
+            player_id: playerId,
+            letter,
+            is_frozen: false,
+          },
+        });
+
+        if (entry) {
+          await entry.destroy();
+        }
+      }
+    }
+  }
 }
 
 module.exports = LetterService;

@@ -62,6 +62,11 @@ class MoveService {
       used_letters: JSON.stringify(usedLetters),
     });
 
+    await LetterService.removeLettersFromPlayer(
+      gameId,
+      playerId,
+      usedLetters.map((l) => l.letter)
+    );
     await LetterService.drawLettersToFill(gameId, playerId);
 
     if (playerId === game.player1_id) {
