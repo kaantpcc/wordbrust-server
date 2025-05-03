@@ -131,28 +131,20 @@ class LetterService {
     return total || 0;
   }
 
-  static async removeUsedLetters(gameId, playerId, usedLetters) {
-    const usageMap = {};
+  static async removeUsedLetters(gameId, playerId, usedLetterArray) {
+    const currentLetters = await PlayerLetters.findAll({
+      where: { game_id: gameId, player_id: playerId },
+    });
 
-    for (const { letter } of usedLetters) {
-      usageMap[letter] = (usageMap[letter] || 0) + 1;
-    }
+    const used = [...usedLetterArray]; // ['E', 'L']
 
-    for (const [letter, amount] of Object.entries(usageMap)) {
-      for (let i = 0; i < amount; i++) {
-        const entry = await PlayerLetters.findOne({
-          where: {
-            game_id: gameId,
-            player_id: playerId,
-            letter,
-            is_frozen: false,
-          },
-        });
-
-        if (entry) {
-          await entry.destroy();
-        }
+    for (const letterObj of currentLetters) {
+      const idx = used.findIndex((l) => l === letterObj.letter);
+      if (idx !== -1) {
+        await letterObj.destroy(); // sadece birini sil
+        used.splice(idx, 1); // o harfi kullandık, çıkar
       }
+      if (used.length === 0) break;
     }
   }
 }
