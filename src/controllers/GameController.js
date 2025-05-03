@@ -58,6 +58,17 @@ class GameController {
       res.status(500).json({ error: "Internal server error" });
     }
   }
+
+  static async getGameScores(req, res) {
+    try {
+      const { gameId } = req.params;
+      const scores = await GameService.getGameScores(gameId);
+      res.status(200).json(scores);
+    } catch (error) {
+      console.error("getGameScores error:", error);
+      res.status(500).json({ error: "Skorlar alınamadı" });
+    }
+  }
 }
 
 module.exports = GameController;
