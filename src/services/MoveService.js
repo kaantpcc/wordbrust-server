@@ -1,6 +1,6 @@
-const Moves = require("../models/Move");
-const Games = require("../models/Game");
-const BoardCells = require("../models/BoardCell");
+const Moves = require("../models/Moves");
+const Games = require("../models/Games");
+const BoardCells = require("../models/BoardCells");
 const Words = require("../models/Words");
 const LetterService = require("./LetterService");
 
