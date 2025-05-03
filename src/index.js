@@ -9,6 +9,7 @@ const userRoutes = require("./routes/UserRoutes.js");
 const gameRoutes = require("./routes/GameRoutes.js");
 const boardRoutes = require("./routes/BoardRoutes.js");
 const letterRoutes = require("./routes/LetterRoutes.js");
+const moveRoutes = require("./routes/MoveRoutes.js");
 
 const { initSocket } = require("./socket");
 
@@ -24,6 +25,7 @@ app.use("/api/user", userRoutes);
 app.use("/api/game", gameRoutes);
 app.use("/api/board", boardRoutes);
 app.use("/api/letter", letterRoutes);
+app.use("/api/move", moveRoutes);
 
 const server = http.createServer(app);
 
