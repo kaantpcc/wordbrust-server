@@ -15,7 +15,6 @@ class MoveService {
     direction,
     usedLetters,
   }) {
-
     console.log("Used letters:", usedLetters);
     console.log("Word:", word);
 
@@ -71,7 +70,10 @@ class MoveService {
       playerId,
       usedLetters.map((l) => l.letter)
     );
-    await LetterService.drawLettersToFill(gameId, playerId);
+    const newlyDrawnLetters = await LetterService.drawLettersToFill(
+      gameId,
+      playerId
+    );
 
     if (playerId === game.player1_id) {
       game.player1_score += score;
@@ -100,6 +102,7 @@ class MoveService {
         player2_score: game.player2_score,
       },
       nextTurnStartTime: game.last_move_at,
+      newLetters: newlyDrawnLetters.map((l) => l.letter),
     };
   }
 }
