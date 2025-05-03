@@ -4,67 +4,67 @@ const { Op } = require("sequelize");
 
 class LetterService {
   static async giveInitialLettersToPlayer(gameId, playerId, count = 7) {
-    const pool = await LettersPool.findAll({
-      where: {
-        game_id: gameId,
-        remaining_count: {
-          [Op.gt]: 0,
+    return await sequelize.transaction(async (t) => {
+      const pool = await LettersPool.findAll({
+        where: {
+          game_id: gameId,
+          remaining_count: { [Op.gt]: 0 },
         },
-      },
-    });
+        lock: t.LOCK.UPDATE, // Diğer transaction'lara karşı kilitle
+        transaction: t,
+      });
 
-    if (!pool.length) {
-      throw new Error("Harf havuzu boş.");
-    }
+      if (!pool.length) throw new Error("Harf havuzu boş.");
 
-    const letterBag = [];
-    for (const item of pool) {
-      for (let i = 0; i < item.remaining_count; i++) {
-        letterBag.push({ letter: item.letter });
+      const letterBag = [];
+      for (const item of pool) {
+        for (let i = 0; i < item.remaining_count; i++) {
+          letterBag.push({ letter: item.letter });
+        }
       }
-    }
 
-    if (letterBag.length < count) {
-      throw new Error("Yeterli harf yok.");
-    }
+      if (letterBag.length < count) {
+        throw new Error("Yeterli harf yok.");
+      }
 
-    // 7 rastgele harf
-    const selectedLetters = [];
-    for (let i = 0; i < count; i++) {
-      const randIndex = Math.floor(Math.random() * letterBag.length);
-      const chosenLetter = letterBag[randIndex];
-      selectedLetters.push(chosenLetter);
-      letterBag.splice(randIndex, 1);
-    }
+      const selectedLetters = [];
+      for (let i = 0; i < count; i++) {
+        const randIndex = Math.floor(Math.random() * letterBag.length);
+        const chosenLetter = letterBag[randIndex];
+        selectedLetters.push(chosenLetter);
+        letterBag.splice(randIndex, 1);
+      }
 
-    //kullanıcı harfleri
-    await PlayerLetters.bulkCreate(
-      selectedLetters.map((l) => ({
-        game_id: gameId,
-        player_id: playerId,
-        letter: l.letter,
-        is_frozen: false,
-      }))
-    );
+      // Harfleri oyuncuya yaz
+      await PlayerLetters.bulkCreate(
+        selectedLetters.map((l) => ({
+          game_id: gameId,
+          player_id: playerId,
+          letter: l.letter,
+          is_frozen: false,
+        })),
+        { transaction: t }
+      );
 
-    // havuzdan düşür
-    const usageMap = {};
-    for (const { letter } of selectedLetters) {
-      usageMap[letter] = (usageMap[letter] || 0) + 1;
-    }
+      // Havuzdan düşür
+      const usageMap = {};
+      for (const { letter } of selectedLetters) {
+        usageMap[letter] = (usageMap[letter] || 0) + 1;
+      }
 
-    await Promise.all(
-      Object.entries(usageMap).map(([letter, amount]) =>
-        LettersPool.decrement("remaining_count", {
+      for (const [letter, amount] of Object.entries(usageMap)) {
+        await LettersPool.decrement("remaining_count", {
           by: amount,
           where: { game_id: gameId, letter },
-        })
-      )
-    );
+          transaction: t,
+        });
+      }
 
-    return {
-      letters: selectedLetters,
-    }; // [{ letter: "A" }, ...]
+      // Sadece harfleri dön
+      return {
+        letters: selectedLetters,
+      }; // Örn: [{ letter: 'A' }, { letter: 'K' }, ...]
+    });
   }
 }
 

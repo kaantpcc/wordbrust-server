@@ -2,6 +2,9 @@ const Games = require("../models/Games.js");
 const BoardService = require("./BoardService.js");
 const Users = require("../models/Users.js");
 const BoardCells = require("../models/BoardCells.js");
+const PlayerLetters = require("../models/PlayerLetters.js");
+const LettersPool = require("../models/LettersPool.js");
+const LetterService = require("./LetterService.js");
 const { Op } = require("sequelize");
 
 class GameService {
@@ -56,6 +59,69 @@ class GameService {
     }
   }
 
+  static async joinGame(gameId, playerId) {
+    const game = await Games.findByPk(gameId);
+    if (!game) {
+      throw new Error("Oyun bulunamadı");
+    }
+
+    const board = await BoardCells.findAll({
+      where: { game_id: gameId },
+      attributes: [
+        "row",
+        "col",
+        "letter",
+        "letter_multiplier",
+        "word_multiplier",
+        "mine_type",
+        "bonus_type",
+      ],
+      raw: true,
+    });
+
+    const playerLetters = await PlayerLetters.findAll({
+      where: { game_id: gameId, player_id: playerId },
+      attributes: ["letter"],
+      raw: true,
+    });
+
+    if (playerLetters.length === 0) {
+      const result = await LetterService.giveInitialLettersToPlayer(
+        gameId,
+        playerId
+      );
+      playerLetters = await PlayerLetters.findAll({
+        where: { game_id: gameId, player_id: playerId },
+        attributes: ["letter"],
+        raw: true,
+      });
+      if (!result.success) {
+        throw new Error("Başlangıç harfleri alınamadı");
+      }
+    }
+
+    const letters = playerLetters.map((l) => ({ letter: l.letter }));
+
+    // 4. Oyuncu bilgileri
+    const [p1, p2] = await Promise.all([
+      Users.findByPk(game.player1_id, { attributes: ["id", "username"] }),
+      Users.findByPk(game.player2_id, { attributes: ["id", "username"] }),
+    ]);
+
+    const players = [
+      { id: p1.id, username: p1.username, score: game.player1_score },
+      { id: p2.id, username: p2.username, score: game.player2_score },
+    ];
+
+    // 5. Kalan harf
+    const totalRemaining =
+      (await LettersPool.sum("remaining_count", {
+        where: { game_id: gameId },
+      })) || 0;
+
+    return { board, letters, players, totalRemaining };
+  }
+
   static async getActiveGamesByPlayer(playerId) {
     const activeGames = await Games.findAll({
       where: {
@@ -95,22 +161,6 @@ class GameService {
         turnInfo,
       };
     });
-  }
-
-  static async getGameById(gameId) {
-    const game = await Games.findByPk(gameId, {
-      include: [
-        { model: Users, as: "player1", attributes: ["id", "username"] },
-        { model: Users, as: "player2", attributes: ["id", "username"] },
-        { model: Users, as: "current_turn_player", attributes: ["id"] },
-      ],
-    });
-
-    if (!game) {
-      throw new Error("Oyun bulunamadı");
-    }
-
-    return game;
   }
 }
 

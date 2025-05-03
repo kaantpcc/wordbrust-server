@@ -15,13 +15,34 @@ class GameController {
       const result = await GameService.findOrCreateGame(playerId, game_mode);
       const game = result.game;
 
-      // ❌ totalRemaining kaldırıldı çünkü artık socket ile gönderiliyor
-      res.status(200).json({
-        ...result,
-      });
+      return res.json({ message: result.message, game: result.game });
     } catch (error) {
       console.error("Error in findOrCreateGame:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  }
+
+  static async joinGame(req, res) {
+    try {
+      const gameId = req.params.id;
+      const playerId = req.user.id;
+
+      if (!gameId) {
+        return res
+          .status(400)
+          .json({ error: "Geçerli bir oyun ID'si gerekli" });
+      }
+
+      const data = await GameService.joinGame(gameId, playerId);
+      return res.status(200).json(data);
+    } catch (error) {
+      console.error("Error in joinGame:", error);
+
+      if (error.message === "Oyun bulunamadı") {
+        return res.status(404).json({ error: "Oyun bulunamadı" });
+      }
+
+      res.status(500).json({ error: "Sunucu hatası" });
     }
   }
 
@@ -35,16 +56,6 @@ class GameController {
     } catch (error) {
       console.error("Error in getActiveGamesByPlayer:", error);
       res.status(500).json({ error: "Internal server error" });
-    }
-  }
-
-  static async getGameById(req, res, next) {
-    try {
-      const { gameId } = req.params;
-      const game = await GameService.getGameById(gameId);
-      return res.json({ success: true, game });
-    } catch (err) {
-      return next(err);
     }
   }
 }
