@@ -131,6 +131,13 @@ class LetterService {
     return total || 0;
   }
 
+  static async getPlayerLettersCount(gameId, playerId) {
+    const total = await PlayerLetters.count({
+      where: { game_id: gameId, player_id: playerId },
+    });
+    return total || 0;
+  }
+
   static async removeUsedLetters(gameId, playerId, usedLetterArray) {
     const currentLetters = await PlayerLetters.findAll({
       where: { game_id: gameId, player_id: playerId },
