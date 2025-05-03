@@ -63,6 +63,7 @@ class LetterService {
 
       // Sadece harfleri dön
       return {
+        success: true,
         letters: selectedLetters,
       }; // Örn: [{ letter: 'A' }, { letter: 'K' }, ...]
     });
