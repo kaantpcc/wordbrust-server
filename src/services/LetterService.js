@@ -1,6 +1,7 @@
 const LettersPool = require("../models/LettersPool");
 const PlayerLetters = require("../models/PlayerLetters");
 const { Op } = require("sequelize");
+const sequelize = require("../config/database"); // Sequelize instance
 
 class LetterService {
   static async giveInitialLettersToPlayer(gameId, playerId, count = 7) {
