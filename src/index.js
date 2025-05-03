@@ -7,6 +7,7 @@ require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 const authRoutes = require("./routes/AuthRoutes.js");
 const userRoutes = require("./routes/UserRoutes.js");
 const gameRoutes = require("./routes/GameRoutes.js");
+const boardRoutes = require("./routes/BoardRoutes.js");
 
 const { initSocket } = require("./socket");
 
@@ -20,6 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/game", gameRoutes);
+app.use("/api/board", boardRoutes);
 
 const server = http.createServer(app);
 

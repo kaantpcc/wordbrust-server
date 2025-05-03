@@ -154,10 +154,32 @@ class BoardService {
     }
 
     await BoardCells.bulkCreate(boardCells);
-    
+
     await initializeLettersPool(gameId);
 
     console.log("Board initialized successfully.");
+  }
+
+  static async getBoardByGameId(gameId) {
+    const board = await BoardCells.findAll({
+      where: { game_id: gameId },
+      attributes: [
+        "row",
+        "col",
+        "letter",
+        "letter_multiplier",
+        "word_multiplier",
+        "mine_type",
+        "bonus_type",
+      ],
+      order: [
+        ["row", "ASC"],
+        ["col", "ASC"],
+      ],
+      raw: true,
+    });
+
+    return board;
   }
 }
 

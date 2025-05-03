@@ -164,6 +164,20 @@ class GameService {
       };
     });
   }
+
+  static async getGameScores(gameId) {
+    const game = await Games.findByPk(gameId);
+    if (!game) {
+      throw new Error("Oyun bulunamadı");
+    }
+
+    return {
+      player1_id: game.player1_id,
+      player2_id: game.player2_id,
+      player1_score: game.player1_score,
+      player2_score: game.player2_score,
+    };
+  }
 }
 
 module.exports = GameService;

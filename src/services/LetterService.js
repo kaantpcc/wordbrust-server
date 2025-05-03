@@ -68,6 +68,68 @@ class LetterService {
       }; // Örn: [{ letter: 'A' }, { letter: 'K' }, ...]
     });
   }
+
+  static async drawLettersToFill(gameId, playerId) {
+    const currentLetters = await PlayerLetters.findAll({
+      where: { game_id: gameId, player_id: playerId },
+    });
+
+    const lettersNeeded = 7 - currentLetters.length;
+    if (lettersNeeded <= 0) return [];
+
+    // Havuzdan rastgele harfler çek
+    const pool = await LettersPool.findAll({
+      where: {
+        game_id: gameId,
+        remaining_count: { [Op.gt]: 0 },
+      },
+    });
+
+    const drawn = [];
+
+    for (let i = 0; i < lettersNeeded && pool.length > 0; i++) {
+      // Rastgele harf seç
+      const randomIndex = Math.floor(Math.random() * pool.length);
+      const letterEntry = pool[randomIndex];
+
+      // Harfi kaydet
+      await PlayerLetters.create({
+        game_id: gameId,
+        player_id: playerId,
+        letter: letterEntry.letter,
+      });
+
+      // Havuzdan bir eksilt
+      letterEntry.remaining_count -= 1;
+      await letterEntry.save();
+
+      drawn.push(letterEntry.letter);
+
+      // Eğer sayısı 0'a düştüyse pool'dan çıkar
+      if (letterEntry.remaining_count === 0) {
+        pool.splice(randomIndex, 1);
+      }
+    }
+
+    return drawn; // İstersek frontend'e de dönebiliriz
+  }
+
+  static async getLettersForPlayer(gameId, playerId) {
+    const letters = await PlayerLetters.findAll({
+      where: { game_id: gameId, player_id: playerId },
+      attributes: ["letter"],
+      raw: true,
+    });
+
+    return letters.map((l) => l.letter); // Harfleri döndür
+  }
+
+  static async getRemainingLetterCount(gameId) {
+    const total = await LettersPool.sum("remaining_count", {
+      where: { game_id: gameId },
+    });
+    return total || 0;
+  }
 }
 
 module.exports = LetterService;

@@ -15,6 +15,12 @@ Words.init(
     modelName: "Words",
     tableName: "words",
     timestamps: false,
+    indexes: [
+      {
+        name: "idx_words_word",
+        fields: ["word"],
+      },
+    ],
   }
 );
 

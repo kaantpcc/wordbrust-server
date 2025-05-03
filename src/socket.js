@@ -46,6 +46,13 @@ function initSocket(server) {
   return io;
 }
 
+function emitMoveMade(gameId) {
+  if (io) {
+    io.to(`game_${gameId}`).emit("move_made");
+    console.log(`📢 move_made sinyali gönderildi -> game_${gameId}`);
+  }
+}
+
 function getIO() {
   if (!io) {
     throw new Error("Socket.io not initialized");
@@ -53,4 +60,4 @@ function getIO() {
   return io;
 }
 
-module.exports = { initSocket, getIO };
+module.exports = { initSocket, getIO, emitMoveMade };
