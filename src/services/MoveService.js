@@ -11,12 +11,64 @@ const TURN_TIMEOUTS = {
   "24h": 24 * 60 * 60 * 1000,
 };
 
+const LETTER_POINTS = {
+  A: 1,
+  B: 3,
+  C: 4,
+  Ç: 4,
+  D: 3,
+  E: 1,
+  F: 7,
+  G: 5,
+  Ğ: 8,
+  H: 5,
+  I: 2,
+  İ: 1,
+  J: 10,
+  K: 1,
+  L: 1,
+  M: 2,
+  N: 1,
+  O: 1,
+  Ö: 7,
+  P: 5,
+  R: 1,
+  S: 2,
+  Ş: 4,
+  T: 1,
+  U: 2,
+  Ü: 3,
+  V: 7,
+  Y: 3,
+  Z: 4,
+  "*": 0,
+};
+
+function calculateWordScore(wordCells, usedLetterMap) {
+  let total = 0;
+  let wordMultiplier = 1;
+  for (const cell of wordCells) {
+    const isNew = usedLetterMap.has(`${cell.row}-${cell.col}`);
+    const letter = isNew
+      ? usedLetterMap.get(`${cell.row}-${cell.col}`)
+      : cell.letter;
+    const basePoint = LETTER_POINTS[letter.toUpperCase()] || 0;
+
+    let letterScore = basePoint;
+    if (isNew) {
+      letterScore *= cell.letter_multiplier || 1;
+      wordMultiplier *= cell.word_multiplier || 1;
+    }
+    total += letterScore;
+  }
+  return total * wordMultiplier;
+}
+
 class MoveService {
   static async createMove({
     gameId,
     playerId,
     word,
-    score,
     startRow,
     startCol,
     direction,
@@ -24,27 +76,22 @@ class MoveService {
   }) {
     const game = await Games.findByPk(gameId);
     if (!game) throw new Error("Game not found");
-
-    if (game.game_status === "finished") {
+    if (game.game_status === "finished")
       throw new Error("Game is already finished.");
-    }
 
     const now = new Date();
     const lastMoveAt = new Date(game.last_move_at || now);
     const timeoutMs = TURN_TIMEOUTS[game.game_mode];
-
     if (timeoutMs && now - lastMoveAt > timeoutMs) {
       const loserId = game.current_turn_player_id;
       const winnerId =
         loserId === game.player1_id ? game.player2_id : game.player1_id;
       const winnerScore =
         winnerId === game.player1_id ? game.player1_score : game.player2_score;
-
       game.game_status = "finished";
       game.winner_id = winnerId;
       game.winner_score = winnerScore;
       await game.save();
-
       throw new Error("timeout_game_over");
     }
 
@@ -59,26 +106,20 @@ class MoveService {
       throw new Error("Dikey kelimede tüm harfler aynı sütunda olmalı");
 
     const totalMoves = await Moves.count({ where: { game_id: gameId } });
-    if (totalMoves === 0) {
-      const includesCenter = usedLetters.some(
-        (l) => l.row === 7 && l.col === 7
-      );
-      if (!includesCenter)
-        throw new Error("İlk hamlede kelime tahtanın ortasından geçmeli (7,7)");
-    }
+    if (
+      totalMoves === 0 &&
+      !usedLetters.some((l) => l.row === 7 && l.col === 7)
+    )
+      throw new Error("İlk hamlede kelime tahtanın ortasından geçmeli (7,7)");
 
-    // 🧠 Board map'i hazırla (tahta üzerindeki harfleri getir)
-    const boardCells = await BoardCells.findAll({
-      where: { game_id: gameId },
-    });
+    const boardCells = await BoardCells.findAll({ where: { game_id: gameId } });
     const boardMap = new Map();
+    const cellMap = new Map();
     for (const cell of boardCells) {
-      if (cell.letter) {
-        boardMap.set(`${cell.row}-${cell.col}`, cell.letter);
-      }
+      if (cell.letter) boardMap.set(`${cell.row}-${cell.col}`, cell.letter);
+      cellMap.set(`${cell.row}-${cell.col}`, cell);
     }
 
-    // ✅ TEMAS KONTROLÜ (mevcut harfe komşu olmalı)
     const isTouching =
       totalMoves === 0 ||
       usedLetters.some((cell) => {
@@ -89,78 +130,79 @@ class MoveService {
           boardMap.has(`${cell.row}-${cell.col + 1}`)
         );
       });
-
-    if (!isTouching) {
+    if (!isTouching)
       throw new Error("Yeni harfler mevcut harflerle temas etmeli.");
+
+    const usedLetterMap = new Map();
+    for (const { row, col, letter } of usedLetters) {
+      usedLetterMap.set(`${row}-${col}`, letter);
     }
 
-    // ✅ OLUŞAN TÜM KELİMELERİN GEÇERLİLİK KONTROLÜ
+    const wordsToCheck = new Set();
+    const wordsToScore = [];
     for (const { row, col } of usedLetters) {
-      // Yatay kelime
-      let startCol = col;
-      while (startCol > 0 && boardMap.get(`${row}-${startCol - 1}`)) {
-        startCol--;
-      }
-      let horizontalWord = "";
-      let i = startCol;
+      // Horizontal
+      let sc = col;
       while (
-        i < 15 &&
-        (boardMap.get(`${row}-${i}`) ||
-          usedLetters.find((u) => u.row === row && u.col === i))
-      ) {
+        sc > 0 &&
+        (boardMap.has(`${row}-${sc - 1}`) ||
+          usedLetterMap.has(`${row}-${sc - 1}`))
+      )
+        sc--;
+      const hCells = [];
+      for (let i = sc; i < 15; i++) {
         const l =
-          usedLetters.find((u) => u.row === row && u.col === i)?.letter ||
-          boardMap.get(`${row}-${i}`);
+          usedLetterMap.get(`${row}-${i}`) || boardMap.get(`${row}-${i}`);
         if (!l) break;
-        horizontalWord += l;
-        i++;
+        hCells.push(cellMap.get(`${row}-${i}`) || { row, col: i });
+      }
+      if (hCells.length > 1) {
+        const hWord = hCells
+          .map((c) => usedLetterMap.get(`${c.row}-${c.col}`) || c.letter)
+          .join("");
+        wordsToCheck.add(hWord.toLowerCase());
+        wordsToScore.push(hCells);
       }
 
-      if (horizontalWord.length > 1) {
-        const exists = await Words.findOne({
-          where: { word: horizontalWord.toLowerCase() },
-        });
-        if (!exists) {
-          throw new Error(`Geçersiz kelime (yatay): ${horizontalWord}`);
-        }
-      }
-
-      // Dikey kelime
-      let startRow = row;
-      while (startRow > 0 && boardMap.get(`${startRow - 1}-${col}`)) {
-        startRow--;
-      }
-      let verticalWord = "";
-      let j = startRow;
+      // Vertical
+      let sr = row;
       while (
-        j < 15 &&
-        (boardMap.get(`${j}-${col}`) ||
-          usedLetters.find((u) => u.row === j && u.col === col))
-      ) {
+        sr > 0 &&
+        (boardMap.has(`${sr - 1}-${col}`) ||
+          usedLetterMap.has(`${sr - 1}-${col}`))
+      )
+        sr--;
+      const vCells = [];
+      for (let j = sr; j < 15; j++) {
         const l =
-          usedLetters.find((u) => u.row === j && u.col === col)?.letter ||
-          boardMap.get(`${j}-${col}`);
+          usedLetterMap.get(`${j}-${col}`) || boardMap.get(`${j}-${col}`);
         if (!l) break;
-        verticalWord += l;
-        j++;
+        vCells.push(cellMap.get(`${j}-${col}`) || { row: j, col });
       }
-
-      if (verticalWord.length > 1) {
-        const exists = await Words.findOne({
-          where: { word: verticalWord.toLowerCase() },
-        });
-        if (!exists) {
-          throw new Error(`Geçersiz kelime (dikey): ${verticalWord}`);
-        }
+      if (vCells.length > 1) {
+        const vWord = vCells
+          .map((c) => usedLetterMap.get(`${c.row}-${c.col}`) || c.letter)
+          .join("");
+        wordsToCheck.add(vWord.toLowerCase());
+        wordsToScore.push(vCells);
       }
     }
 
-    // ✅ Hamleyi kaydet
+    for (const w of wordsToCheck) {
+      const valid = await Words.findOne({ where: { word: w } });
+      if (!valid) throw new Error(`Geçersiz kelime: ${w}`);
+    }
+
+    const totalScore = wordsToScore.reduce(
+      (sum, wordCells) => sum + calculateWordScore(wordCells, usedLetterMap),
+      0
+    );
+
     await Moves.create({
       game_id: gameId,
       player_id: playerId,
       word,
-      score_earned: score,
+      score_earned: totalScore,
       start_row: startRow,
       start_col: startCol,
       direction,
@@ -177,17 +219,13 @@ class MoveService {
       playerId
     );
 
-    if (playerId === game.player1_id) {
-      game.player1_score += score;
-    } else {
-      game.player2_score += score;
-    }
+    if (playerId === game.player1_id) game.player1_score += totalScore;
+    else game.player2_score += totalScore;
 
     game.current_turn_player_id =
       playerId === game.player1_id ? game.player2_id : game.player1_id;
     game.last_move_at = new Date();
 
-    // Tahtayı güncelle
     for (const letter of usedLetters) {
       await BoardCells.update(
         { letter: letter.letter },
@@ -195,24 +233,17 @@ class MoveService {
       );
     }
 
-    // ✅ Harfler bittiyse oyunu bitir
-    const remainingPoolLetters = await LetterService.getRemainingLetterCount(
-      gameId
-    );
-    const player1Letters = await LetterService.getPlayerLettersCount(
+    const remaining = await LetterService.getRemainingLetterCount(gameId);
+    const p1 = await LetterService.getPlayerLettersCount(
       gameId,
       game.player1_id
     );
-    const player2Letters = await LetterService.getPlayerLettersCount(
+    const p2 = await LetterService.getPlayerLettersCount(
       gameId,
       game.player2_id
     );
 
-    if (
-      remainingPoolLetters === 0 &&
-      player1Letters === 0 &&
-      player2Letters === 0
-    ) {
+    if (remaining === 0 && p1 === 0 && p2 === 0) {
       game.game_status = "finished";
       if (game.player1_score > game.player2_score) {
         game.winner_id = game.player1_id;
