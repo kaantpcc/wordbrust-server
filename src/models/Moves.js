@@ -27,6 +27,23 @@ Moves.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    move_type: {
+      type: DataTypes.ENUM("play", "pass", "resign"),
+      allowNull: false,
+      defaultValue: "play",
+    },
+    used_letters: {
+      type: DataTypes.JSONB, // veya STRING array de olabilir
+      allowNull: true,
+    },
+    joker_used: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    bonus_effect: {
+      type: DataTypes.STRING, // Örn: "puan_katla", "el_bozul", vs.
+      allowNull: true,
+    },
     score_earned: {
       type: DataTypes.INTEGER,
       allowNull: false,

@@ -119,7 +119,9 @@ class GameService {
         where: { game_id: gameId },
       })) || 0;
 
-    return { board, letters, players, totalRemaining };
+    const isMyTurn = game.current_turn_player_id === playerId;
+
+    return { board, letters, players, totalRemaining, isMyTurn };
   }
 
   static async getActiveGamesByPlayer(playerId) {
