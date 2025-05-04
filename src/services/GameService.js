@@ -178,6 +178,37 @@ class GameService {
       player2_score: game.player2_score,
     };
   }
+
+  static async getFinishedGamesByPlayer(playerId) {
+    const finishedGames = await Games.findAll({
+      where: {
+        game_status: "finished",
+        [Op.or]: [{ player1_id: playerId }, { player2_id: playerId }],
+      },
+      include: [
+        { model: Users, as: "player1", attributes: ["id", "username"] },
+        { model: Users, as: "player2", attributes: ["id", "username"] },
+      ],
+      order: [["updatedAt", "DESC"]],
+    });
+
+    return finishedGames.map((game) => ({
+      gameId: game.id,
+      player1: {
+        id: game.player1?.id,
+        username: game.player1?.username,
+        score: game.player1_score,
+      },
+      player2: {
+        id: game.player2?.id,
+        username: game.player2?.username,
+        score: game.player2_score,
+      },
+      winnerId: game.winner_id,
+      winnerScore: game.winner_score,
+      updatedAt: game.updatedAt,
+    }));
+  }
 }
 
 module.exports = GameService;

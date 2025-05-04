@@ -69,6 +69,18 @@ class GameController {
       res.status(500).json({ error: "Skorlar alınamadı" });
     }
   }
+  static async getFinishedGamesByPlayer(req, res) {
+    try {
+      const playerId = req.user.id;
+      const finishedGames = await GameService.getFinishedGamesByPlayer(
+        playerId
+      );
+      res.status(200).json(finishedGames);
+    } catch (error) {
+      console.error("Error in getFinishedGamesByPlayer:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
 }
 
 module.exports = GameController;

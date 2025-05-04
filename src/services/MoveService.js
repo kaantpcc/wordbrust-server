@@ -3,6 +3,7 @@ const Games = require("../models/Games");
 const BoardCells = require("../models/BoardCells");
 const Words = require("../models/Words");
 const LetterService = require("./LetterService");
+const Users = require("../models/Users");
 
 const TURN_TIMEOUTS = {
   "2min": 2 * 60 * 1000,
@@ -304,6 +305,17 @@ class MoveService {
         game.winner_id = null;
         game.winner_score = game.player1_score;
       }
+    }
+
+    if (game.winner_id) {
+      await Users.increment("user_win_count", {
+        where: { id: game.winner_id },
+      });
+
+      const loserId =
+        game.winner_id === game.player1_id ? game.player2_id : game.player1_id;
+
+      await Users.increment("user_loss_count", { where: { id: loserId } });
     }
 
     await game.save();
