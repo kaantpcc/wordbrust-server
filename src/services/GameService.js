@@ -102,7 +102,6 @@ class GameService {
 
     const letters = playerLetters.map((l) => ({ letter: l.letter }));
 
-    // 4. Oyuncu bilgileri
     const [p1, p2] = await Promise.all([
       Users.findByPk(game.player1_id, { attributes: ["id", "username"] }),
       Users.findByPk(game.player2_id, { attributes: ["id", "username"] }),
@@ -113,7 +112,6 @@ class GameService {
       { id: p2.id, username: p2.username, score: game.player2_score },
     ];
 
-    // 5. Kalan harf
     const totalRemaining =
       (await LettersPool.sum("remaining_count", {
         where: { game_id: gameId },

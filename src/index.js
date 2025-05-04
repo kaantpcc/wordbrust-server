@@ -29,7 +29,6 @@ app.use("/api/move", moveRoutes);
 
 const server = http.createServer(app);
 
-// 🔥 burada socket başlatıyoruz
 initSocket(server);
 
 server.listen(PORT, () => {

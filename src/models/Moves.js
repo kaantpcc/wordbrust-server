@@ -33,7 +33,7 @@ Moves.init(
       defaultValue: "play",
     },
     used_letters: {
-      type: DataTypes.JSONB, // veya STRING array de olabilir
+      type: DataTypes.JSONB,
       allowNull: true,
     },
     joker_used: {
@@ -41,7 +41,7 @@ Moves.init(
       defaultValue: false,
     },
     bonus_effect: {
-      type: DataTypes.STRING, // Örn: "puan_katla", "el_bozul", vs.
+      type: DataTypes.STRING,
       allowNull: true,
     },
     score_earned: {

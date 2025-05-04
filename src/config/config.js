@@ -8,7 +8,7 @@ module.exports = {
     dialectOptions: {
       ssl: {
         require: true,
-        rejectUnauthorized: false, // This line is important for self-signed certificates
+        rejectUnauthorized: false,
       },
     },
   },

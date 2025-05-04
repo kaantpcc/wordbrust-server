@@ -29,7 +29,7 @@ PlayerLetters.init(
     },
     is_frozen: {
       type: DataTypes.BOOLEAN,
-      defaultValue: false, // Başlangıçta harfler normal (donmamış)
+      defaultValue: false,
     },
   },
   {

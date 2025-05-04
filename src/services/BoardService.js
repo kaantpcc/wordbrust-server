@@ -135,7 +135,7 @@ class BoardService {
       for (let i = 0; i < mine.count; i++) {
         const randomIndex = Math.floor(Math.random() * eligibleCells.length);
         eligibleCells[randomIndex].mine_type = mine.type;
-        eligibleCells.splice(randomIndex, 1); // Remove the cell from eligibleCells
+        eligibleCells.splice(randomIndex, 1);
       }
     }
 
@@ -149,7 +149,7 @@ class BoardService {
       for (let i = 0; i < bonus.count; i++) {
         const randomIndex = Math.floor(Math.random() * eligibleCells.length);
         eligibleCells[randomIndex].bonus_type = bonus.type;
-        eligibleCells.splice(randomIndex, 1); // Remove the cell from eligibleCells
+        eligibleCells.splice(randomIndex, 1);
       }
     }
 

@@ -20,7 +20,7 @@ function initSocket(server) {
         await socket.join(roomName);
 
         const clients = await io.in(roomName).allSockets(); // Set<string>
-        console.log(`📊 ${roomName} kişi sayısı: ${clients.size}`);
+        console.log(`${roomName} kişi sayısı: ${clients.size}`);
 
         if (clients.size === 2) {
           io.to(roomName).emit("both_players_ready", {
@@ -28,18 +28,18 @@ function initSocket(server) {
           });
         }
       } catch (error) {
-        console.error(`❌ join_game_room hatası:`, error);
+        console.error(`join_game_room hatası:`, error);
       }
     });
 
     socket.on("leave_game_room", ({ gameId }) => {
       const roomName = `game_${gameId}`;
       socket.leave(roomName);
-      console.log(`🚪 ${socket.id} left ${roomName}`);
+      console.log(`${socket.id} left ${roomName}`);
     });
 
     socket.on("disconnect", () => {
-      console.log(`🔴 Kullanıcı bağlantısı kesildi: ${socket.id}`);
+      console.log(`Kullanıcı bağlantısı kesildi: ${socket.id}`);
     });
   });
 
@@ -49,7 +49,7 @@ function initSocket(server) {
 function emitMoveMade(gameId) {
   if (io) {
     io.to(`game_${gameId}`).emit("move_made");
-    console.log(`📢 move_made sinyali gönderildi -> game_${gameId}`);
+    console.log(` move_made sinyali gönderildi -> game_${gameId}`);
   }
 }
 
@@ -62,7 +62,7 @@ function resignSignal(gameId, resignedBy, winnerId, winnerScore) {
       winnerScore,
     });
     console.log(
-      `📢 resignSignal: game_${gameId} -> player ${resignedBy} pes etti`
+      `resignSignal: game_${gameId} -> player ${resignedBy} pes etti`
     );
   }
 }

@@ -1,7 +1,7 @@
 const LettersPool = require("../models/LettersPool");
 const PlayerLetters = require("../models/PlayerLetters");
 const { Op } = require("sequelize");
-const sequelize = require("../config/database"); // Sequelize instance
+const sequelize = require("../config/database");
 
 class LetterService {
   static async giveInitialLettersToPlayer(gameId, playerId, count = 7) {
@@ -11,7 +11,7 @@ class LetterService {
           game_id: gameId,
           remaining_count: { [Op.gt]: 0 },
         },
-        lock: t.LOCK.UPDATE, // Diğer transaction'lara karşı kilitle
+        lock: t.LOCK.UPDATE,
         transaction: t,
       });
 
@@ -65,7 +65,7 @@ class LetterService {
       return {
         success: true,
         letters: selectedLetters,
-      }; // Örn: [{ letter: 'A' }, { letter: 'K' }, ...]
+      };
     });
   }
 
@@ -111,7 +111,7 @@ class LetterService {
       }
     }
 
-    return drawn; // İstersek frontend'e de dönebiliriz
+    return drawn; 
   }
 
   static async getLettersForPlayer(gameId, playerId) {

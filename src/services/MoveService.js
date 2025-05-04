@@ -178,7 +178,7 @@ class MoveService {
 
     const wordsToCheck = new Set();
     const wordsToScore = [];
-    const debugWordList = []; // 👈 debug için tüm oluşan kelimeleri burada tutacağız
+    const debugWordList = [];
 
     for (const { row, col } of usedLetters) {
       // Ana yön - Horizontal
@@ -230,7 +230,7 @@ class MoveService {
       }
     }
 
-    // 📋 Tüm kelimeleri yazdır
+    
     console.log("✅ Oluşan tüm kelimeler:", debugWordList);
 
     for (const w of wordsToCheck) {

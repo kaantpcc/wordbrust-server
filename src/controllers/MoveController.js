@@ -20,7 +20,7 @@ class MoveController {
         usedLetters,
       });
 
-      emitMoveMade(gameId); // Emit the move made event to the game room
+      emitMoveMade(gameId);
 
       res.status(200).json({
         result,
