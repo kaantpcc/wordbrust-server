@@ -81,6 +81,35 @@ class GameController {
       res.status(500).json({ error: "Internal server error" });
     }
   }
+
+  static async resignGame(req, res) {
+    try {
+      const userId = req.user.id;
+      const { gameId } = req.params;
+
+      const result = await GameService.resignGame(gameId, userId);
+
+      resignSignal(
+        result.gameId, // oyun ID
+        userId, // pes eden oyuncu
+        result.winnerId, // kazanan oyuncu
+        result.winnerScore // kazanan skoru
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: result.message,
+        winnerId: result.winnerId,
+        gameId: result.gameId,
+      });
+    } catch (err) {
+      console.error("❌ Oyun teslim hatası:", err);
+      return res.status(err.status || 500).json({
+        success: false,
+        message: err.message || "Oyun teslim edilirken bir hata oluştu",
+      });
+    }
+  }
 }
 
 module.exports = GameController;

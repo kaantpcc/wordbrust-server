@@ -53,6 +53,20 @@ function emitMoveMade(gameId) {
   }
 }
 
+function resignSignal(gameId, resignedBy, winnerId, winnerScore) {
+  if (io) {
+    io.to(`game_${gameId}`).emit("game_resigned", {
+      gameId,
+      resignedBy,
+      winnerId,
+      winnerScore,
+    });
+    console.log(
+      `📢 resignSignal: game_${gameId} -> player ${resignedBy} pes etti`
+    );
+  }
+}
+
 function getIO() {
   if (!io) {
     throw new Error("Socket.io not initialized");
@@ -60,4 +74,4 @@ function getIO() {
   return io;
 }
 
-module.exports = { initSocket, getIO, emitMoveMade };
+module.exports = { initSocket, getIO, emitMoveMade, resignSignal };

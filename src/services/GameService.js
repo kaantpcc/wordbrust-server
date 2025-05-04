@@ -209,6 +209,47 @@ class GameService {
       updatedAt: game.updatedAt,
     }));
   }
+
+  static async resignGame(gameId, userId) {
+    const game = await Games.findByPk(gameId);
+    if (!game) {
+      const error = new Error("Game not found");
+      error.status = 404;
+      throw error;
+    }
+
+    if (game.game_status === "finished") {
+      const error = new Error("Game already finished");
+      error.status = 400;
+      throw error;
+    }
+
+    if (userId !== game.player1_id && userId !== game.player2_id) {
+      const error = new Error("You are not a player in this game");
+      error.status = 403;
+      throw error;
+    }
+
+    const opponentId =
+      userId === game.player1_id ? game.player2_id : game.player1_id;
+    const winnerScore =
+      userId === game.player1_id ? game.player2_score : game.player1_score;
+
+    game.game_status = "finished";
+    game.winner_id = opponentId;
+    game.winner_score = winnerScore;
+    await game.save();
+
+    // Kullanıcı istatistiklerini güncelle
+    await Users.increment("user_win_count", { where: { id: opponentId } });
+    await Users.increment("user_loss_count", { where: { id: userId } });
+
+    return {
+      message: "Game resigned successfully",
+      winnerId: opponentId,
+      gameId: game.id,
+    };
+  }
 }
 
 module.exports = GameService;

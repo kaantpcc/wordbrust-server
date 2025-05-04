@@ -8,5 +8,6 @@ router.post("/:id/join", authenticateToken, GameController.joinGame);
 router.get("/active-games", authenticateToken, GameController.getActiveGamesByPlayer);
 router.get("/:gameId/scores", authenticateToken, GameController.getGameScores);
 router.get("/finished-games", authenticateToken, GameController.getFinishedGamesByPlayer);
+router.post("/resign/:gameId", authenticateToken, GameController.resignGame);
 
 module.exports = router;
